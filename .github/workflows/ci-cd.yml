@@ -143,14 +143,17 @@ jobs:
           Write-Host "Destination: $DeployPath"
 
           robocopy $SourcePath $DeployPath /E /XD .git .venv .github
+          $RobocopyExitCode = $LASTEXITCODE
 
-          if ($LASTEXITCODE -ge 8) {
-              throw "File deployment failed"
+          if ($RobocopyExitCode -ge 8) {
+              throw "File deployment failed.  Robocopy exit code: $RobocopyExitCode"
           }
 
+          Write-Host "Robocopy exit code: $RobocopyExitCode"
           Write-Host "Application files deployed successfully"
 
-
+          # Reset native command exit code
+          $global:LASTEXITCODE = 0
       # ----------------------------
       # DEPLOYMENT COMPLETED
       # ----------------------------
