@@ -1,3 +1,9 @@
+# Convention	        Meaning
+# test_*.py	            Files starting with test_
+# *_test.py	            Files ending with _test.py
+# test_*()	            Functions starting with test_
+# Test*	                Test classes starting with Test
+
 from app import calculate_total
 
 
