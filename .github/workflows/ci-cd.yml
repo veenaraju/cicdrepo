@@ -93,14 +93,14 @@ jobs:
       - name: Create deployment folder
         shell: powershell
         run: |
-          $DeployPath = "C:\Deployment\cicd-demo"
+          $DeployPath = "C:\users\veens\Deployment\cicd-demo"
 
           New-Item -ItemType Directory -Force -Path $DeployPath
 
       - name: Deploy application files
         shell: powershell
         run: |
-          $DeployPath = "C:\Deployment\cicd-demo"
+          $DeployPath = "C:\users\veens\Deployment\cicd-demo"
           $SourcePath = $env:GITHUB_WORKSPACE
 
           robocopy $SourcePath $DeployPath /E /XD .git .venv
@@ -116,4 +116,4 @@ jobs:
         run: |
           Write-Host "CI checks passed"
           Write-Host "Deployment completed successfully"
-          Get-ChildItem "C:\Deployment\cicd-demo"
+          Get-ChildItem "C:\users\veens\Deployment\cicd-demo"
