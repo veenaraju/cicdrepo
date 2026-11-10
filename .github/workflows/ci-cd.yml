@@ -19,6 +19,7 @@ jobs:
 
   # --------------------------------
   # JOB 1: CONTINUOUS INTEGRATION
+  # CODE QUALITY
   # --------------------------------
 
   lint:
@@ -39,6 +40,7 @@ jobs:
 
       - name: Run Ruff
         run: ruff check .
+
 
   # --------------------------------
   # JOB 2: UNIT TESTING
@@ -63,8 +65,10 @@ jobs:
       - name: Run tests
         run: pytest -v
 
+
   # --------------------------------
   # JOB 3: CONTINUOUS DEPLOYMENT
+  # SELF-HOSTED WINDOWS RUNNER
   # --------------------------------
 
   deploy:
@@ -72,38 +76,73 @@ jobs:
 
     runs-on: [self-hosted, windows, x64]
 
+    # CD depends on both CI jobs
     needs: [lint, test]
 
-    # Deploy only after a push to main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Deploy only when both CI jobs succeed
+    # and the event is a push to main
+    if: >-
+      success() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
+    # PowerShell execution configuration
+    defaults:
+      run:
+        shell: powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& '{0}'"
 
     steps:
+
+      # ----------------------------
+      # CHECKOUT
+      # ----------------------------
 
       - name: Checkout source code
         uses: actions/checkout@v4
 
+
+      # ----------------------------
+      # VERIFY RUNNER
+      # ----------------------------
+
       - name: Verify self-hosted runner
-        shell: powershell
         run: |
           Write-Host "Running on self-hosted Windows machine"
           Write-Host "Deployment started"
 
+          Write-Host "Computer Name:"
           $env:COMPUTERNAME
 
+          Write-Host "Current User:"
+          whoami
+
+
+      # ----------------------------
+      # CREATE DEPLOYMENT DIRECTORY
+      # ----------------------------
+
       - name: Create deployment folder
-        shell: powershell
         run: |
           $DeployPath = "C:\users\veens\Deployment\cicd-demo"
 
           New-Item -ItemType Directory -Force -Path $DeployPath
 
+          Write-Host "Deployment folder created"
+
+
+      # ----------------------------
+      # DEPLOY APPLICATION FILES
+      # ----------------------------
+
       - name: Deploy application files
-        shell: powershell
         run: |
           $DeployPath = "C:\users\veens\Deployment\cicd-demo"
           $SourcePath = $env:GITHUB_WORKSPACE
 
-          robocopy $SourcePath $DeployPath /E /XD .git .venv
+          Write-Host "Source: $SourcePath"
+          Write-Host "Destination: $DeployPath"
+
+          robocopy $SourcePath $DeployPath /E /XD .git .venv .github
 
           if ($LASTEXITCODE -ge 8) {
               throw "File deployment failed"
@@ -111,9 +150,14 @@ jobs:
 
           Write-Host "Application files deployed successfully"
 
+
+      # ----------------------------
+      # DEPLOYMENT COMPLETED
+      # ----------------------------
+
       - name: Deployment completed
-        shell: powershell
         run: |
           Write-Host "CI checks passed"
           Write-Host "Deployment completed successfully"
+
           Get-ChildItem "C:\users\veens\Deployment\cicd-demo"
