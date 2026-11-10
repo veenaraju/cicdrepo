@@ -1,3 +1,4 @@
+
 name: Python CI CD Demo
 
 on:
@@ -11,10 +12,19 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
+
+  # --------------------------------
+  # JOB 1: CONTINUOUS INTEGRATION
+  # --------------------------------
+
   lint:
     name: Ruff - Code Quality
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -30,9 +40,14 @@ jobs:
       - name: Run Ruff
         run: ruff check .
 
+  # --------------------------------
+  # JOB 2: UNIT TESTING
+  # --------------------------------
+
   test:
     name: Pytest - Unit Tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -48,16 +63,57 @@ jobs:
       - name: Run tests
         run: pytest -v
 
+  # --------------------------------
+  # JOB 3: CONTINUOUS DEPLOYMENT
+  # --------------------------------
+
   deploy:
-    name: CD - Deployment Demo
-    runs-on: ubuntu-latest
+    name: CD - Self Hosted Deployment
+
+    runs-on: [self-hosted, windows, x64]
+
     needs: [lint, test]
+
+    # Deploy only after a push to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
+
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Simulate deployment
+      - name: Verify self-hosted runner
+        shell: powershell
         run: |
-          echo "All CI checks passed."
-          echo "Deploying application (demo simulation)..."
-          echo "Deployment completed."
+          Write-Host "Running on self-hosted Windows machine"
+          Write-Host "Deployment started"
+
+          $env:COMPUTERNAME
+
+      - name: Create deployment folder
+        shell: powershell
+        run: |
+          $DeployPath = "C:\Deployment\cicd-demo"
+
+          New-Item -ItemType Directory -Force -Path $DeployPath
+
+      - name: Deploy application files
+        shell: powershell
+        run: |
+          $DeployPath = "C:\Deployment\cicd-demo"
+          $SourcePath = $env:GITHUB_WORKSPACE
+
+          robocopy $SourcePath $DeployPath /E /XD .git .venv
+
+          if ($LASTEXITCODE -ge 8) {
+              throw "File deployment failed"
+          }
+
+          Write-Host "Application files deployed successfully"
+
+      - name: Deployment completed
+        shell: powershell
+        run: |
+          Write-Host "CI checks passed"
+          Write-Host "Deployment completed successfully"
+          Get-ChildItem "C:\Deployment\cicd-demo"
